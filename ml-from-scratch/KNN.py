@@ -1,27 +1,27 @@
 from collections import Counter
 
-class KNNClassifier : 
+class KNNClassifier: 
 
-    def __init__(self, k=3, dist_measure="euclidean_distance"):
+    def __init__(self, k=3, metric="euclidean"):
         """
         K-Nearest Neighbour classifier.
 
         Parameters:
             k : int
                 Number of neighbours used for classification.
-            dist_measure : str
-                Distance metric ("euclidean_distance" or "manhattan_distance").
+            metric : str
+                Distance metric ("euclidean" or "manhattan").
         """
         # Check the value of K and Distance Matrices
-        if k <= 0:
-            raise ValueError("k must be a positive integer.")
-        if dist_measure not in ["euclidean_distance", "manhattan_distance"]:
+        if not isinstance(k, int) or isinstance(k, bool) or k <= 0:
+            raise ValueError("k must be a positive integer")
+        if metric not in{"euclidean", "manhattan"}:
             raise ValueError(
-                "dist_measure must be 'euclidean_distance' or 'manhattan_distance'."
+                "metric must be 'euclidean' or 'manhattan'."
             )
         
         self.k = k
-        self.distance_measure = dist_measure
+        self.metric = metric
         self.X_train = None
         self.y_train = None
 
@@ -36,6 +36,8 @@ class KNNClassifier :
         """
         
         # Check the samples and the labels size 
+        if len(X_train) == 0:
+            raise ValueError("Training data cannot be empty")
         if len(X_train) != len(y_train):
             raise ValueError("X_train and y_train must have the same length.")
         if self.k > len(X_train):
@@ -43,8 +45,12 @@ class KNNClassifier :
         
         self.X_train = X_train
         self.y_train = y_train
+        
+        return self
 
-
+    def _check_is_fitted(self):
+        if self.X_train is None or self.y_train is None:
+            raise RuntimeError("KNNClassifier must be fitted before prediction.")
   
 
     @staticmethod
@@ -52,6 +58,8 @@ class KNNClassifier :
         """
         Compute Euclidean distance between two samples.
         """
+        if len(point1) != len(point2):
+            raise ValueError("Points must have the same number of features")
         total = 0
         for p1, p2 in zip(point1, point2):
             total += (p1 - p2) ** 2
@@ -63,6 +71,8 @@ class KNNClassifier :
         """
         Compute Manhattan distance between two samples.
         """
+        if len(point1) != len(point2):
+            raise ValueError("Points must have the same number of features")
         total = 0
         for p1, p2 in zip(point1, point2):
             total += abs(p1 - p2)
@@ -79,12 +89,14 @@ class KNNClassifier :
         Returns:
             list of tuples in the form of (distance, label).
         """
+        # check if model is fitted
+        self._check_is_fitted()
         distances = []
         # Loop through training samples
         for x, y in zip(self.X_train, self.y_train):
             
             # Choose distance metric
-            if self.distance_measure == "manhattan_distance":
+            if self.metric == "manhattan":
                 dist = self.manhattan_distance(x, x_test)
             else:
                 dist = self.euclidean_distance(x, x_test)
