@@ -1,8 +1,8 @@
 import numpy as np
 
-class Node():
+class Node:
 
-    def __init__(self, prediction=None, feature_index=None,
+    def __init__(self, prediction=None, feature_index=None, 
                  threshold=None, left=None, right=None):
     
         self.prediction = prediction
@@ -30,9 +30,15 @@ class DecisionTreeClassifier:
             max_depth : maximum depth allowed for the tree
             min_samples_split : minimum number of samples needed to split a node
         """
+        if not isinstance(max_depth, int) or isinstance(max_depth, bool) or max_depth < 1:
+            raise ValueError("max_depth should be a positive integer")
+        if not isinstance(min_samples_split, int) or isinstance(min_samples_split, bool) or min_samples_split < 2:
+            raise ValueError("min_samples_split must be an integer greater than 1")
+        
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.root = None
+        self.n_features = None
 
     @staticmethod
     def gini(y):
@@ -111,10 +117,6 @@ class DecisionTreeClassifier:
 
 
     def best_split(self, X, y):
-        """
-        Find the best feature and threshold across all features.
-        """
-
         """
         Find the best feature and threshold that minimises Gini impurity.
 
@@ -207,7 +209,26 @@ class DecisionTreeClassifier:
         """
         Train the decision tree.
         """
+        X = np.asarray(X)
+        y = np.asarray(y)
+        
+        if len(X) == 0:
+             raise ValueError("Training data cannot be empty.")
+        if len(X) != len(y):
+             raise ValueError("X and y must contain the same number of samples.")
+         
+        if X.ndim != 2:
+            raise ValueError("X must be a 2D array.")
+        if y.ndim != 1:
+            raise ValueError("y must be a 1D array.")
+        
         self.root = self.build_tree(X, y)
+        self.n_features = X.shape[1]
+        return self
+    
+    def _check_is_fitted(self):
+        if self.root is None:
+            raise RuntimeError("DecisionTreeClassifier must be fitted before prediction")
 
 
     def predict_one(self, node, x_row):
@@ -233,6 +254,14 @@ class DecisionTreeClassifier:
         Returns:
             predicted labels for all samples
         """
+        self._check_is_fitted()
+        X = np.asarray(X)
+        if X.ndim != 2:
+            raise ValueError("X must be a 2D array")
+
+        if X.shape[1] != self.n_features:
+            raise ValueError("X must have the same number of features as the training data")
+        
         predictions = []
         for row in X:
             predictions.append(self.predict_one(self.root, row))
